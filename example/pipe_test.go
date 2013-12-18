@@ -1,4 +1,8 @@
-package graphpipe
+package graphpipe_example
+
+import (
+	"github.com/thinxer/graphpipe"
+)
 
 func ExampleGraphpipe() {
 	var yamlData = `
@@ -12,6 +16,12 @@ func ExampleGraphpipe() {
         seed1: 0
         seed2: 1
         limit: 5
+    - name: sampler
+      type: IntSampler
+      requires:
+        - fib
+      config:
+        interval: 3
     - name: logger
       type: IntLogger
       requires:
@@ -19,12 +29,6 @@ func ExampleGraphpipe() {
       config:
         name: BeforeSampling
         silent: yes
-    - name: sampler
-      type: IntSampler
-      requires:
-        - logger
-      config:
-        interval: 3
     - name: logger2
       type: IntLogger
       requires:
@@ -32,7 +36,7 @@ func ExampleGraphpipe() {
       config:
         name: AfterSampling
 `
-	pipe, err := GraphPipeFromYAML([]byte(yamlData))
+	pipe, err := graphpipe.GraphPipeFromYAML([]byte(yamlData))
 	if err != nil {
 		panic(err)
 	}

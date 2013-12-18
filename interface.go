@@ -2,15 +2,12 @@ package graphpipe
 
 // An updatable node in the pipeline
 type Node interface {
-	// Return true to activate its dependecies
+	// Return true to activate nodes depending on this one.
 	Update(tid int) (updated bool)
 	// Return true if the node won't output anything anymore
 	// This method is usually also required by the Source interfaces.
 	Closed() bool
 }
-
-// Common sources
-// You can define your own, of course.
 
 // A source emitting integers
 type IntSource interface {

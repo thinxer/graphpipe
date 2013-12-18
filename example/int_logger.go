@@ -1,7 +1,8 @@
-package graphpipe
+package graphpipe_example
 
 import (
 	"fmt"
+	pipe "github.com/thinxer/graphpipe"
 )
 
 // An int sampler
@@ -11,7 +12,7 @@ type IntLogger struct {
 	value  int
 	name   string
 	silent bool
-	source IntSource
+	source pipe.IntSource
 }
 
 type IntLoggerConfig struct {
@@ -35,10 +36,10 @@ func (f *IntLogger) Closed() bool {
 	return f.source.Closed()
 }
 
-func NewIntLogger(config *IntLoggerConfig, source IntSource) *IntLogger {
+func NewIntLogger(config *IntLoggerConfig, source pipe.IntSource) *IntLogger {
 	return &IntLogger{source: source, name: config.Name, silent: config.Silent}
 }
 
 func init() {
-	Regsiter("IntLogger", NewIntLogger)
+	pipe.Regsiter("IntLogger", NewIntLogger)
 }

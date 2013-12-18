@@ -60,14 +60,17 @@ func (r registry) NewNode(name string, config interface{}, deps ...Node) Node {
 	return outs[0].Interface().(Node)
 }
 
+// Register a NewNode function to the default registry
 func Regsiter(name string, newfunc interface{}) {
 	defaultRegistry.Regsiter(name, newfunc)
 }
 
+// Create a new config by node name from the default registry
 func NewConfig(name string) interface{} {
 	return defaultRegistry.NewConfig(name)
 }
 
+// Create a new node by name, config and dependencies from the default registry
 func NewNode(name string, config interface{}, deps ...Node) Node {
 	return defaultRegistry.NewNode(name, config, deps...)
 }

@@ -1,4 +1,8 @@
-package graphpipe
+package graphpipe_example
+
+import (
+	pipe "github.com/thinxer/graphpipe"
+)
 
 // An int sampler
 
@@ -8,7 +12,7 @@ type IntSampler struct {
 
 	count    int
 	interval int
-	source   IntSource
+	source   pipe.IntSource
 }
 
 type IntSamplerConfig struct {
@@ -32,7 +36,7 @@ func (f *IntSampler) Closed() bool {
 	return f.source.Closed()
 }
 
-func NewIntSampler(config *IntSamplerConfig, source IntSource) *IntSampler {
+func NewIntSampler(config *IntSamplerConfig, source pipe.IntSource) *IntSampler {
 	if config.Interval <= 0 {
 		panic("interval must be positive")
 	}
@@ -40,5 +44,5 @@ func NewIntSampler(config *IntSamplerConfig, source IntSource) *IntSampler {
 }
 
 func init() {
-	Regsiter("IntSampler", NewIntSampler)
+	pipe.Regsiter("IntSampler", NewIntSampler)
 }

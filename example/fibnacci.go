@@ -1,4 +1,8 @@
-package graphpipe
+package graphpipe_example
+
+import (
+	"github.com/thinxer/graphpipe"
+)
 
 // A sample data source
 
@@ -37,5 +41,5 @@ func newFibonacci(config *FibonacciConfig) *Fibonacci {
 }
 
 func init() {
-	Regsiter("Fibonacci", newFibonacci)
+	graphpipe.Regsiter("Fibonacci", newFibonacci)
 }
