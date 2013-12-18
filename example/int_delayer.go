@@ -4,6 +4,8 @@ import (
 	pipe "github.com/thinxer/graphpipe"
 )
 
+// This delayer is only for demo.
+// The 'cache' field will leak memory. You may consider a circular queue instead.
 type IntDelayer struct {
 	tid   int
 	value int
