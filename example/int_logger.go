@@ -5,8 +5,6 @@ import (
 	pipe "github.com/thinxer/graphpipe"
 )
 
-// An int sampler
-
 type IntLogger struct {
 	tid    int
 	value  int
@@ -23,7 +21,7 @@ type IntLoggerConfig struct {
 func (f *IntLogger) Update(tid int) bool {
 	f.tid, f.value = f.source.Value()
 	if !f.silent {
-		fmt.Printf("%s[%d]: %d\n", f.name, f.tid, f.value)
+		fmt.Printf("%s[%d]: %d[%d]\n", f.name, tid, f.value, f.tid)
 	}
 	return true
 }

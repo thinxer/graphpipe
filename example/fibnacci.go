@@ -24,12 +24,15 @@ func (f *Fibonacci) Update(tid int) bool {
 		f.tid = tid
 		f.count++
 		return true
+	} else if f.count == f.limit {
+		f.count = -1
+		return false
 	}
 	return false
 }
 
 func (f *Fibonacci) Closed() bool {
-	return f.count >= f.limit
+	return f.count < 0
 }
 
 func (f *Fibonacci) Value() (int, int) {
