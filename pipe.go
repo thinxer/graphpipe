@@ -1,6 +1,7 @@
 package graphpipe
 
 import (
+	"io/ioutil"
 	"launchpad.net/goyaml"
 	"log"
 )
@@ -81,6 +82,14 @@ func GraphPipeFromYAML(yaml []byte) (pipe *GraphPipe, err error) {
 		nodesMap[nodeConfig.Name] = i
 	}
 	return
+}
+
+func GraphPipeFromYAMLFile(filename string) (*GraphPipe, error) {
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return GraphPipeFromYAML(bytes)
 }
 
 // Return the id of next tick.
