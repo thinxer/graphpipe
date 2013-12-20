@@ -7,16 +7,20 @@ import (
 
 // A universal logger.
 type Logger struct {
-	name   string
-	source AnySource
+	name    string
+	sources []AnySource
 }
 
 func (l *Logger) Update(mytid int) bool {
-	valueMethod := reflect.ValueOf(l.source).MethodByName("Value")
-	results := valueMethod.Call([]reflect.Value{})
-	tid := results[0].Int()
-	value := results[1].Interface()
-	fmt.Printf("%s[%d]: %v[%d]\n", l.name, mytid, value, tid)
+	fmt.Printf("%s[%d]:", l.name, mytid)
+	for _, source := range l.sources {
+		valueMethod := reflect.ValueOf(source).MethodByName("Value")
+		results := valueMethod.Call([]reflect.Value{})
+		tid := results[0].Int()
+		value := results[1].Interface()
+		fmt.Printf("\t%v[%d]", value, tid)
+	}
+	fmt.Println()
 	return false
 }
 
@@ -25,24 +29,31 @@ func (l *Logger) Value() int {
 }
 
 func (l *Logger) Closed() bool {
-	return l.source.Closed()
+	for _, s := range l.sources {
+		if !s.Closed() {
+			return false
+		}
+	}
+	return true
 }
 
-func NewLogger(config *struct{ Name string }, source AnySource) *Logger {
-	valueMethod := reflect.ValueOf(source).MethodByName("Value")
-	if valueMethod.Kind() != reflect.Func {
-		panic("Cannot find Value method!")
+func NewLogger(config *struct{ Name string }, sources ...AnySource) *Logger {
+	for i, source := range sources {
+		valueMethod := reflect.ValueOf(source).MethodByName("Value")
+		if valueMethod.Kind() != reflect.Func {
+			fmt.Errorf("%d source: Cannot find Value method!", i)
+		}
+		if valueMethod.Type().NumIn() != 0 {
+			fmt.Errorf("%d source: Value method must have 0 inputs!", i)
+		}
+		if valueMethod.Type().NumOut() != 2 {
+			fmt.Errorf("%d source: Value method must have 2 outputs!", i)
+		}
+		if valueMethod.Type().Out(0).Kind() != reflect.Int {
+			fmt.Errorf("%d source: Value method must return (int, _)!", i)
+		}
 	}
-	if valueMethod.Type().NumIn() != 0 {
-		panic("Value method must have 0 inputs!")
-	}
-	if valueMethod.Type().NumOut() != 2 {
-		panic("Value method must have 2 outputs!")
-	}
-	if valueMethod.Type().Out(0).Kind() != reflect.Int {
-		panic("Value method must return (int, _)!")
-	}
-	return &Logger{name: config.Name, source: source}
+	return &Logger{name: config.Name, sources: sources}
 }
 
 func init() {
