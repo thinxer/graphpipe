@@ -28,7 +28,6 @@ type NilSource interface {
 }
 
 // A source emitting anything
-type AnythingSource interface {
-	Value() (int, interface{})
+type AnySource interface {
 	Closed() bool
 }
