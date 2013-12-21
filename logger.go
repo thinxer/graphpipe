@@ -24,10 +24,6 @@ func (l *Logger) Update(mytid int) bool {
 	return false
 }
 
-func (l *Logger) Value() int {
-	return -1
-}
-
 func (l *Logger) Closed() bool {
 	for _, s := range l.sources {
 		if !s.Closed() {
