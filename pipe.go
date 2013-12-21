@@ -1,6 +1,7 @@
 package graphpipe
 
 import (
+	"fmt"
 	"io/ioutil"
 	"launchpad.net/goyaml"
 	"log"
@@ -68,6 +69,7 @@ func GraphPipeFromYAML(yaml []byte) (pipe *GraphPipe, err error) {
 		children:  make([][]int, ncount),
 	}
 	nodesMap := make(map[string]int)
+	hasSource := false
 	for i, nodeConfig := range config.Nodes {
 		var deps []Node
 		for _, depsName := range nodeConfig.Requires {
@@ -79,7 +81,11 @@ func GraphPipeFromYAML(yaml []byte) (pipe *GraphPipe, err error) {
 		node := defaultRegistry.NewNode(nodeConfig.Type, nodeConfig.Config, deps...)
 		pipe.nodes[i] = node
 		pipe.source[i] = nodeConfig.Source
+		hasSource = hasSource || nodeConfig.Source
 		nodesMap[nodeConfig.Name] = i
+	}
+	if !hasSource {
+		return nil, fmt.Errorf("You must specify at least one source node!")
 	}
 	return
 }
