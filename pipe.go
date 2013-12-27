@@ -45,11 +45,10 @@ func readConfig(bytes []byte) (config *YAMLConfig, err error) {
 }
 
 type GraphPipe struct {
-	tid       int
-	nodes     []Node
-	activated []bool
-	source    []bool
-	children  [][]int
+	tid      int
+	nodes    []Node
+	source   []bool
+	children [][]int
 }
 
 // Construct a graphpipe from a YAML config.
@@ -63,10 +62,9 @@ func GraphPipeFromYAML(yaml []byte) (pipe *GraphPipe, err error) {
 	}
 	ncount := len(config.Nodes)
 	pipe = &GraphPipe{
-		nodes:     make([]Node, ncount),
-		activated: make([]bool, ncount),
-		source:    make([]bool, ncount),
-		children:  make([][]int, ncount),
+		nodes:    make([]Node, ncount),
+		source:   make([]bool, ncount),
+		children: make([][]int, ncount),
 	}
 	nodesMap := make(map[string]int)
 	hasSource := false
@@ -107,15 +105,13 @@ func (p *GraphPipe) TickId() int {
 func (p *GraphPipe) RunOnce() bool {
 	closed := 0
 	log.Printf("GraphPipe[%d] started.", p.tid)
-	for i := range p.nodes {
-		p.activated[i] = false
-	}
+	activated := make([]bool, len(p.nodes))
 	for i, node := range p.nodes {
-		if p.activated[i] || (p.source[i] && !p.nodes[i].Closed()) {
+		if activated[i] || (p.source[i] && !p.nodes[i].Closed()) {
 			updated := node.Update(p.tid)
 			if updated {
 				for _, j := range p.children[i] {
-					p.activated[j] = true
+					activated[j] = true
 				}
 			}
 			if node.Closed() {
@@ -124,7 +120,7 @@ func (p *GraphPipe) RunOnce() bool {
 		} else if p.nodes[i].Closed() {
 			for _, j := range p.children[i] {
 				if !p.nodes[j].Closed() {
-					p.activated[j] = true
+					activated[j] = true
 				}
 			}
 		}
