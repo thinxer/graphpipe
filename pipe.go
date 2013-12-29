@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"launchpad.net/goyaml"
 	"log"
+	"reflect"
 )
 
 type YAMLConfig struct {
@@ -32,13 +33,13 @@ func readConfig(bytes []byte) (config *YAMLConfig, err error) {
 				return nil, err
 			}
 
-			node.Config = defaultRegistry.NewConfig(node.Type)
+			node.Config = NewConfig(node.Type)
 			err = goyaml.Unmarshal(remarshal, node.Config)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			node.Config = defaultRegistry.NewConfig(node.Type)
+			node.Config = NewConfig(node.Type)
 		}
 	}
 	return
@@ -52,16 +53,16 @@ type GraphPipe struct {
 }
 
 // Construct a graphpipe from a YAML config.
-func GraphPipeFromYAML(yaml []byte) (pipe *GraphPipe, err error) {
+func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 	config, err := readConfig(yaml)
 	if err != nil {
-		return
+		return nil, err
 	}
 	for i, n := range config.Nodes {
 		log.Printf("Node[%d]: %v, config: %+v", i, n, n.Config)
 	}
 	ncount := len(config.Nodes)
-	pipe = &GraphPipe{
+	pipe := &GraphPipe{
 		nodes:    make([]Node, ncount),
 		source:   make([]bool, ncount),
 		children: make([][]int, ncount),
@@ -76,7 +77,14 @@ func GraphPipeFromYAML(yaml []byte) (pipe *GraphPipe, err error) {
 			deps = append(deps, dep)
 			pipe.children[depIndex] = append(pipe.children[depIndex], i)
 		}
-		node := defaultRegistry.NewNode(nodeConfig.Type, nodeConfig.Config, deps...)
+		node, err := NewNode(nodeConfig.Type, nodeConfig.Config, deps...)
+		if err != nil {
+			return nil, err
+		}
+		if node == nil {
+			return nil, fmt.Errorf("Create node %s failed", nodeConfig.Name)
+		}
+
 		pipe.nodes[i] = node
 		pipe.source[i] = nodeConfig.Source
 		hasSource = hasSource || nodeConfig.Source
@@ -85,7 +93,7 @@ func GraphPipeFromYAML(yaml []byte) (pipe *GraphPipe, err error) {
 	if !hasSource {
 		return nil, fmt.Errorf("You must specify at least one source node!")
 	}
-	return
+	return pipe, nil
 }
 
 func GraphPipeFromYAMLFile(filename string) (*GraphPipe, error) {

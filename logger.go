@@ -26,13 +26,14 @@ type LoggerConfig struct {
 }
 
 func (l *Logger) Update(mytid int) bool {
-	fmt.Fprintf(l.output, "%v\t%s[%d]:", time.Now(), l.name, mytid)
+	fmt.Fprintf(l.output, "%v\t[%d]%s:", time.Now(), mytid, l.name)
 	for _, source := range l.sources {
 		valueMethod := reflect.ValueOf(source).MethodByName("Value")
 		results := valueMethod.Call([]reflect.Value{})
-		tid := results[0].Int()
-		value := results[1].Interface()
-		fmt.Fprintf(l.output, "\t%v[%d]", value, tid)
+		fmt.Fprintf(l.output, "\t")
+		for _, r := range results {
+			fmt.Fprintf(l.output, "[%v]", r.Interface())
+		}
 	}
 	fmt.Fprintln(l.output)
 	l.output.Sync()
@@ -48,7 +49,7 @@ func (l *Logger) Closed() bool {
 	return true
 }
 
-func NewLogger(config *LoggerConfig, sources ...AnySource) *Logger {
+func NewLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
 	for i, source := range sources {
 		valueMethod := reflect.ValueOf(source).MethodByName("Value")
 		if valueMethod.Kind() != reflect.Func {
@@ -56,9 +57,6 @@ func NewLogger(config *LoggerConfig, sources ...AnySource) *Logger {
 		}
 		if valueMethod.Type().NumIn() != 0 {
 			fmt.Errorf("%d source: Value method must have 0 inputs!", i)
-		}
-		if valueMethod.Type().NumOut() != 2 {
-			fmt.Errorf("%d source: Value method must have 2 outputs!", i)
 		}
 		if valueMethod.Type().Out(0).Kind() != reflect.Int {
 			fmt.Errorf("%d source: Value method must return (int, _)!", i)
@@ -74,12 +72,12 @@ func NewLogger(config *LoggerConfig, sources ...AnySource) *Logger {
 		var err error
 		output, err = os.OpenFile(config.Output, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 	fmt.Fprintln(output, "--------", time.Now())
 	output.Sync()
-	return &Logger{name: config.Name, sources: sources, output: output}
+	return &Logger{name: config.Name, sources: sources, output: output}, nil
 }
 
 func init() {

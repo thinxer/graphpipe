@@ -1,11 +1,13 @@
 package graphpipe
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 )
 
 var nodeInterface = reflect.TypeOf((*Node)(nil)).Elem()
+var errorInterface = reflect.TypeOf((*error)(nil)).Elem()
 
 // the value of this registry will be reflected.
 type registry map[string]interface{}
@@ -15,24 +17,27 @@ var defaultRegistry registry = registry(make(map[string]interface{}))
 func (r registry) Regsiter(name string, newfunc interface{}) {
 	t := reflect.TypeOf(newfunc)
 	if t.Kind() != reflect.Func {
-		panic("newfunc is not a func")
+		panic(name + "'s newfunc is not a func")
 	}
 	if t.NumIn() < 1 {
-		panic("newfunc must have >=1 inputs")
+		panic(name + "'s newfunc must have >=1 inputs")
 	}
-	if t.NumOut() != 1 {
-		panic("newfunc must have exactly 1 output")
+	if t.NumOut() != 2 {
+		panic(name + "'s newfunc must return (Node, error)")
 	}
 	configT := t.In(0)
 	if configT.Kind() != reflect.Ptr {
-		panic("newfunc's first input must be a pointer (of config)")
+		panic(name + "'s newfunc's first input must be a pointer (of config)")
 	}
 	returnT := t.Out(0)
 	if returnT.Kind() != reflect.Ptr {
-		panic("newfunc must return a pointer")
+		panic(name + "'s newfunc must return a pointer")
 	}
 	if !returnT.Implements(nodeInterface) {
-		panic("newfunc must return a Node")
+		panic(name + "'s newfunc must return a Node as first output")
+	}
+	if !t.Out(1).Implements(errorInterface) {
+		panic(name + "'s newfunc must return an error as second output")
 	}
 	r[name] = newfunc
 }
@@ -46,10 +51,15 @@ func (r registry) NewConfig(name string) interface{} {
 	return reflect.New(configType).Interface()
 }
 
-func (r registry) NewNode(name string, config interface{}, deps ...Node) Node {
+func (r registry) NewNode(name string, config interface{}, deps ...Node) (Node, error) {
 	newfunc, ok := r[name]
 	if !ok {
-		log.Panicf("Node of %s not found", name)
+		return nil, fmt.Errorf("Node of %s not found", name)
+	}
+	for _, dep := range deps {
+		if dep == nil {
+			return nil, fmt.Errorf("Nil dependency detected")
+		}
 	}
 
 	ins := []reflect.Value{reflect.ValueOf(config)}
@@ -57,7 +67,13 @@ func (r registry) NewNode(name string, config interface{}, deps ...Node) Node {
 		ins = append(ins, reflect.ValueOf(dep))
 	}
 	outs := reflect.ValueOf(newfunc).Call(ins)
-	return outs[0].Interface().(Node)
+	node := outs[0].Interface()
+	err := outs[1].Interface()
+	if err != nil {
+		return nil, err.(error)
+	} else {
+		return node.(Node), nil
+	}
 }
 
 // Register a NewNode function to the default registry
@@ -71,6 +87,6 @@ func NewConfig(name string) interface{} {
 }
 
 // Create a new node by name, config and dependencies from the default registry
-func NewNode(name string, config interface{}, deps ...Node) Node {
+func NewNode(name string, config interface{}, deps ...Node) (Node, error) {
 	return defaultRegistry.NewNode(name, config, deps...)
 }
