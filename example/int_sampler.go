@@ -1,6 +1,7 @@
 package graphpipe_example
 
 import (
+	"fmt"
 	pipe "github.com/thinxer/graphpipe"
 )
 
@@ -36,11 +37,11 @@ func (f *IntSampler) Closed() bool {
 	return f.source.Closed()
 }
 
-func NewIntSampler(config *IntSamplerConfig, source pipe.IntSource) *IntSampler {
+func NewIntSampler(config *IntSamplerConfig, source pipe.IntSource) (*IntSampler, error) {
 	if config.Interval <= 0 {
-		panic("interval must be positive")
+		return nil, fmt.Errorf("interval must be positive")
 	}
-	return &IntSampler{count: 0, interval: config.Interval, source: source}
+	return &IntSampler{count: 0, interval: config.Interval, source: source}, nil
 }
 
 func init() {

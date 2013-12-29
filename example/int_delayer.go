@@ -1,6 +1,7 @@
 package graphpipe_example
 
 import (
+	"fmt"
 	pipe "github.com/thinxer/graphpipe"
 )
 
@@ -50,11 +51,11 @@ func (f *IntDelayer) Closed() bool {
 	}
 }
 
-func NewIntDelayer(config *IntDelayerConfig, source pipe.IntSource) *IntDelayer {
+func NewIntDelayer(config *IntDelayerConfig, source pipe.IntSource) (*IntDelayer, error) {
 	if config.Delay <= 0 {
-		panic("delay must be positive: you cannot travel to the future!")
+		return nil, fmt.Errorf("delay must be positive: you cannot travel to the future!")
 	}
-	return &IntDelayer{delay: config.Delay, source: source}
+	return &IntDelayer{delay: config.Delay, source: source}, nil
 }
 
 func init() {

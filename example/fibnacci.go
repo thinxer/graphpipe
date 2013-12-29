@@ -39,8 +39,8 @@ func (f *Fibonacci) Value() (int, int) {
 	return f.tid, f.a
 }
 
-func newFibonacci(config *FibonacciConfig) *Fibonacci {
-	return &Fibonacci{a: config.Seed1, b: config.Seed2, count: 0, limit: config.Limit}
+func newFibonacci(config *FibonacciConfig) (*Fibonacci, error) {
+	return &Fibonacci{a: config.Seed1, b: config.Seed2, count: 0, limit: config.Limit}, nil
 }
 
 func init() {

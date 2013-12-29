@@ -34,8 +34,8 @@ func (f *IntLogger) Closed() bool {
 	return f.source.Closed()
 }
 
-func NewIntLogger(config *IntLoggerConfig, source pipe.IntSource) *IntLogger {
-	return &IntLogger{source: source, name: config.Name, silent: config.Silent}
+func NewIntLogger(config *IntLoggerConfig, source pipe.IntSource) (*IntLogger, error) {
+	return &IntLogger{source: source, name: config.Name, silent: config.Silent}, nil
 }
 
 func init() {
