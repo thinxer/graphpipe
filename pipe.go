@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"launchpad.net/goyaml"
 	"log"
-	"reflect"
 )
 
 type YAMLConfig struct {
