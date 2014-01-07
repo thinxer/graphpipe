@@ -3,11 +3,12 @@ package graphpipe
 import (
 	"fmt"
 	"io/ioutil"
-	"launchpad.net/goyaml"
 	"log"
+
+	"launchpad.net/goyaml"
 )
 
-type YAMLConfig struct {
+type Config struct {
 	Nodes []*struct {
 		Name     string
 		Type     string
@@ -15,10 +16,11 @@ type YAMLConfig struct {
 		Requires []string
 		Config   interface{}
 	}
+	Verbose bool
 }
 
-func readConfig(bytes []byte) (config *YAMLConfig, err error) {
-	config = &YAMLConfig{}
+func readConfig(bytes []byte) (config *Config, err error) {
+	config = &Config{}
 	// first pass to get node types
 	err = goyaml.Unmarshal(bytes, config)
 	if err != nil {
@@ -49,6 +51,8 @@ type GraphPipe struct {
 	nodes    []Node
 	source   []bool
 	children [][]int
+
+	verbose bool
 }
 
 // Construct a graphpipe from a YAML config.
@@ -57,8 +61,10 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i, n := range config.Nodes {
-		log.Printf("Node[%d]: %v, config: %+v", i, n, n.Config)
+	if config.Verbose {
+		for i, n := range config.Nodes {
+			log.Printf("Node[%d]: %v, config: %+v", i, n, n.Config)
+		}
 	}
 	ncount := len(config.Nodes)
 	pipe := &GraphPipe{
@@ -92,6 +98,7 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 	if !hasSource {
 		return nil, fmt.Errorf("You must specify at least one source node!")
 	}
+	pipe.verbose = config.Verbose
 	return pipe, nil
 }
 
@@ -111,7 +118,9 @@ func (p *GraphPipe) TickId() int {
 // Run once and increase tid by one.
 func (p *GraphPipe) RunOnce() bool {
 	closed := 0
-	log.Printf("GraphPipe[%d] started.", p.tid)
+	if p.verbose {
+		log.Printf("GraphPipe[%d] started.", p.tid)
+	}
 	activated := make([]bool, len(p.nodes))
 	for i, node := range p.nodes {
 		if activated[i] || (p.source[i] && !p.nodes[i].Closed()) {
@@ -121,7 +130,7 @@ func (p *GraphPipe) RunOnce() bool {
 					activated[j] = true
 				}
 			}
-			if node.Closed() {
+			if node.Closed() && p.verbose {
 				log.Printf("GraphPipe[%d] Node[%d] Closed", p.tid, i)
 			}
 		} else if p.nodes[i].Closed() {
@@ -135,7 +144,9 @@ func (p *GraphPipe) RunOnce() bool {
 			closed++
 		}
 	}
-	log.Printf("GraphPipe[%d] finished.", p.tid)
+	if p.verbose {
+		log.Printf("GraphPipe[%d] finished.", p.tid)
+	}
 	p.tid++
 	return closed < len(p.nodes)
 }
