@@ -49,7 +49,7 @@ func (l *Logger) Closed() bool {
 	return true
 }
 
-func NewLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
+func newLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
 	for i, source := range sources {
 		valueMethod := reflect.ValueOf(source).MethodByName("Value")
 		if valueMethod.Kind() != reflect.Func {
@@ -81,5 +81,5 @@ func NewLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
 }
 
 func init() {
-	Regsiter("Logger", NewLogger)
+	Regsiter("Logger", newLogger)
 }

@@ -28,10 +28,10 @@ func (l *Timer) Closed() bool {
 	return false
 }
 
-func NewTimer(config *TimerConfig) (*Timer, error) {
+func newTimer(config *TimerConfig) (*Timer, error) {
 	return &Timer{interval: time.Duration(config.Interval) * time.Second}, nil
 }
 
 func init() {
-	Regsiter("Timer", NewTimer)
+	Regsiter("Timer", newTimer)
 }
