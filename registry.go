@@ -6,10 +6,11 @@ import (
 	"reflect"
 )
 
-var nodeInterface = reflect.TypeOf((*Node)(nil)).Elem()
-var errorInterface = reflect.TypeOf((*error)(nil)).Elem()
+var (
+	nodeInterface  = reflect.TypeOf((*Node)(nil)).Elem()
+	errorInterface = reflect.TypeOf((*error)(nil)).Elem()
+)
 
-// the value of this registry will be reflected.
 type registry map[string]interface{}
 
 var defaultRegistry registry = registry(make(map[string]interface{}))
@@ -76,17 +77,32 @@ func (r registry) NewNode(name string, config interface{}, deps ...Node) (Node, 
 	}
 }
 
-// Register a NewNode function to the default registry
+func (r registry) List() (ret []string) {
+	for k := range r {
+		ret = append(ret, k)
+	}
+	return
+}
+
+// Register a newNode function to the default registry.
+// Please do not export the newNode function.
+// This function will examine the newNode func for necessary methods,
+// and get the config type from the first argument.
 func Regsiter(name string, newfunc interface{}) {
 	defaultRegistry.Regsiter(name, newfunc)
 }
 
-// Create a new config by node name from the default registry
+// List registered types.
+func List() []string {
+	return defaultRegistry.List()
+}
+
+// Create a new config by node name from the default registry.
 func NewConfig(name string) interface{} {
 	return defaultRegistry.NewConfig(name)
 }
 
-// Create a new node by name, config and dependencies from the default registry
+// Create a new node by name, config and dependencies from the default registry.
 func NewNode(name string, config interface{}, deps ...Node) (Node, error) {
 	return defaultRegistry.NewNode(name, config, deps...)
 }
