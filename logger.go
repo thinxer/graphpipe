@@ -14,6 +14,8 @@ type syncWriter interface {
 }
 
 // A universal logger.
+// It is not recommended to use this Node in high performance programs,
+// as reflection is extensively used.
 type Logger struct {
 	name    string
 	sources []AnySource
@@ -26,6 +28,9 @@ type LoggerConfig struct {
 }
 
 func (l *Logger) Update(mytid int) bool {
+	if l.Closed() {
+		return false
+	}
 	fmt.Fprintf(l.output, "%v [%d]%s:", time.Now().Format("0102 15:04:05"), mytid, l.name)
 	for _, source := range l.sources {
 		valueMethod := reflect.ValueOf(source).MethodByName("Value")
