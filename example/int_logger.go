@@ -2,6 +2,7 @@ package graphpipe_example
 
 import (
 	"fmt"
+
 	pipe "github.com/thinxer/graphpipe"
 )
 
@@ -34,8 +35,12 @@ func (f *IntLogger) Closed() bool {
 	return f.source.Closed()
 }
 
-func NewIntLogger(config *IntLoggerConfig, source pipe.IntSource) (*IntLogger, error) {
-	return &IntLogger{source: source, name: config.Name, silent: config.Silent}, nil
+func (i *IntLogger) SetInput(source pipe.IntSource) {
+	i.source = source
+}
+
+func NewIntLogger(config *IntLoggerConfig) (*IntLogger, error) {
+	return &IntLogger{name: config.Name, silent: config.Silent}, nil
 }
 
 func init() {

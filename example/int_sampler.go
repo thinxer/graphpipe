@@ -2,11 +2,12 @@ package graphpipe_example
 
 import (
 	"fmt"
+	"log"
+
 	pipe "github.com/thinxer/graphpipe"
 )
 
 // An int sampler
-
 type IntSampler struct {
 	tid    int
 	sample int
@@ -37,11 +38,16 @@ func (f *IntSampler) Closed() bool {
 	return f.source.Closed()
 }
 
-func NewIntSampler(config *IntSamplerConfig, source pipe.IntSource) (*IntSampler, error) {
+func (i *IntSampler) SetInput(source pipe.IntSource) {
+	log.Println("setting input")
+	i.source = source
+}
+
+func NewIntSampler(config *IntSamplerConfig) (*IntSampler, error) {
 	if config.Interval <= 0 {
 		return nil, fmt.Errorf("interval must be positive")
 	}
-	return &IntSampler{count: 0, interval: config.Interval, source: source}, nil
+	return &IntSampler{count: 0, interval: config.Interval}, nil
 }
 
 func init() {

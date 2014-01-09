@@ -8,6 +8,7 @@ func ExampleIntSampler() {
 	var yamlData = `
 # This is a sample YAML configuration.
 ---
+  verbose: yes
   nodes:
     - name: fib
       type: Fibonacci
@@ -18,20 +19,20 @@ func ExampleIntSampler() {
         limit: 5
     - name: sampler
       type: IntSampler
-      requires:
+      input:
         - fib
       config:
         interval: 3
     - name: logger
       type: IntLogger
-      requires:
+      input:
         - fib
       config:
         name: BeforeSampling
         silent: yes
     - name: logger2
       type: IntLogger
-      requires:
+      input:
         - sampler
       config:
         name: AfterSampling
@@ -51,6 +52,7 @@ func ExampleIntDiffer() {
 	var yamlData = `
 # This is a sample YAML configuration.
 ---
+  verbose: yes
   nodes:
     - name: fib
       type: Fibonacci
@@ -61,32 +63,32 @@ func ExampleIntDiffer() {
         limit: 6
     - name: delayed
       type: IntDelayer
-      requires:
+      input:
         - fib
       config:
         delay: 2
     - name: differ
       type: IntDiffer
-      requires:
+      input:
         - fib
         - delayed
     - name: logger
       type: IntLogger
-      requires:
+      input:
         - fib
       config:
         name: Fib
         silent: yes
     - name: logger2
       type: IntLogger
-      requires:
+      input:
         - delayed
       config:
         name: Delayed
         silent: yes
     - name: logger3
       type: IntLogger
-      requires:
+      input:
         - differ
       config:
         name: Diff

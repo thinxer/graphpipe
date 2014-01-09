@@ -54,7 +54,7 @@ func (l *Logger) Closed() bool {
 	return true
 }
 
-func newLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
+func (l *Logger) SetInput(sources ...AnySource) {
 	for i, source := range sources {
 		valueMethod := reflect.ValueOf(source).MethodByName("Value")
 		if valueMethod.Kind() != reflect.Func {
@@ -67,6 +67,10 @@ func newLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
 			fmt.Errorf("%d source: Value method must return (int, _)!", i)
 		}
 	}
+	l.sources = sources
+}
+
+func newLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
 	var output syncWriter
 	switch config.Output {
 	case "", "-":
@@ -82,7 +86,7 @@ func newLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
 	}
 	fmt.Fprintln(output, "--------", time.Now())
 	output.Sync()
-	return &Logger{name: config.Name, sources: sources, output: output}, nil
+	return &Logger{name: config.Name, output: output}, nil
 }
 
 func init() {

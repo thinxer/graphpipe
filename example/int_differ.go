@@ -30,8 +30,12 @@ func (f *IntDiffer) Closed() bool {
 	return f.a.Closed() || f.b.Closed()
 }
 
-func NewIntDiffer(config *struct{}, a, b pipe.IntSource) (*IntDiffer, error) {
-	return &IntDiffer{a: a, b: b}, nil
+func (i *IntDiffer) SetInput(a, b pipe.IntSource) {
+	i.a, i.b = a, b
+}
+
+func NewIntDiffer(config *struct{}) (*IntDiffer, error) {
+	return &IntDiffer{}, nil
 }
 
 func init() {

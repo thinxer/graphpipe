@@ -8,15 +8,18 @@ import (
 	"launchpad.net/goyaml"
 )
 
+type NodeConfig struct {
+	Name   string
+	Type   string
+	Source bool
+	Inject []string
+	Input  []string
+	Config interface{}
+}
+
 type Config struct {
-	Nodes []*struct {
-		Name     string
-		Type     string
-		Source   bool
-		Requires []string
-		Config   interface{}
-	}
-	Verbose bool
+	Verbose         bool
+	Services, Nodes []NodeConfig
 }
 
 func readConfig(bytes []byte) (config *Config, err error) {
@@ -26,21 +29,24 @@ func readConfig(bytes []byte) (config *Config, err error) {
 	if err != nil {
 		return
 	}
-	for _, node := range config.Nodes {
-		// Is there a way not to remarshal the config?
-		if node.Config != nil {
-			remarshal, err := goyaml.Marshal(node.Config)
-			if err != nil {
-				return nil, err
-			}
+	// second pass to get node configs
+	for _, nodes := range [][]NodeConfig{config.Services, config.Nodes} {
+		for i := range nodes {
+			// Is there a way not to remarshal the config?
+			if nodes[i].Config != nil {
+				remarshal, err := goyaml.Marshal(nodes[i].Config)
+				if err != nil {
+					return nil, err
+				}
 
-			node.Config = NewConfig(node.Type)
-			err = goyaml.Unmarshal(remarshal, node.Config)
-			if err != nil {
-				return nil, err
+				nodes[i].Config = NewConfig(nodes[i].Type)
+				err = goyaml.Unmarshal(remarshal, nodes[i].Config)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				nodes[i].Config = NewConfig(nodes[i].Type)
 			}
-		} else {
-			node.Config = NewConfig(node.Type)
 		}
 	}
 	return
@@ -61,33 +67,64 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 	if err != nil {
 		return nil, err
 	}
-	if config.Verbose {
-		for i, n := range config.Nodes {
-			log.Printf("Node[%d]: %v, config: %+v", i, n, n.Config)
-		}
-	}
 	ncount := len(config.Nodes)
 	pipe := &GraphPipe{
 		nodes:    make([]Node, ncount),
 		source:   make([]bool, ncount),
 		children: make([][]int, ncount),
 	}
-	nodesMap := make(map[string]int)
-	hasSource := false
-	for i, nodeConfig := range config.Nodes {
-		var deps []Node
-		for _, depsName := range nodeConfig.Requires {
-			depIndex := nodesMap[depsName]
-			dep := pipe.nodes[depIndex]
-			deps = append(deps, dep)
-			pipe.children[depIndex] = append(pipe.children[depIndex], i)
+
+	// services map
+	servicesMap := make(map[string]int)
+	services := make([]interface{}, len(config.Services))
+	newNode := func(nodeConfig NodeConfig) (interface{}, error) {
+		if config.Verbose {
+			log.Printf("Creating: %+v\n", nodeConfig)
 		}
-		node, err := NewNode(nodeConfig.Type, nodeConfig.Config, deps...)
+		var injects []interface{}
+		for _, serviceName := range nodeConfig.Inject {
+			serviceIndex := servicesMap[serviceName]
+			service := services[serviceIndex]
+			injects = append(injects, service)
+		}
+		something, err := NewNode(nodeConfig.Type, nodeConfig.Config, injects...)
+
+		if something == nil && err == nil {
+			err = fmt.Errorf("Creation of %s failed", nodeConfig.Name)
+		}
+		return something, err
+	}
+
+	// setup Services
+	for i, serviceConfig := range config.Services {
+		service, err := newNode(serviceConfig)
 		if err != nil {
 			return nil, err
 		}
-		if node == nil {
-			return nil, fmt.Errorf("Create node %s failed", nodeConfig.Name)
+		services[i] = service
+		servicesMap[serviceConfig.Name] = i
+	}
+
+	// setup Nodes
+	nodesMap := make(map[string]int)
+	hasSource := false
+	for i, nodeConfig := range config.Nodes {
+		nodeV, err := newNode(nodeConfig)
+		if err != nil {
+			return nil, err
+		}
+		node := nodeV.(Node)
+		if len(nodeConfig.Input) > 0 {
+			var sources []Node
+			for _, nodeName := range nodeConfig.Input {
+				depIndex := nodesMap[nodeName]
+				dep := pipe.nodes[depIndex]
+				sources = append(sources, dep)
+				pipe.children[depIndex] = append(pipe.children[depIndex], i)
+			}
+			if err := SetInput(node, sources...); err != nil {
+				return nil, err
+			}
 		}
 
 		pipe.nodes[i] = node
@@ -95,6 +132,7 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 		hasSource = hasSource || nodeConfig.Source
 		nodesMap[nodeConfig.Name] = i
 	}
+
 	if !hasSource {
 		return nil, fmt.Errorf("You must specify at least one source node!")
 	}
