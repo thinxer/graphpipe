@@ -85,7 +85,7 @@ func List() (ret []string) {
 func SetInput(node Node, sources ...Node) error {
 	method := reflect.ValueOf(node).MethodByName("SetInput")
 	if !method.IsValid() {
-		return fmt.Errorf("Node have no SetSources method!")
+		return fmt.Errorf("Node have no SetInput method!")
 	}
 	ins := []reflect.Value{}
 	for _, source := range sources {
