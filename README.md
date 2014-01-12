@@ -1,11 +1,4 @@
 GraphPipe
 =========
 
-Flexible data flow.
-
-TODO
-----
-
-+ Multiple data sources.
-+ Test cases.
-+ Benchmarks.
+Flexible data flow. See Issues for TODOs.
