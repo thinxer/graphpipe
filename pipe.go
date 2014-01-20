@@ -67,24 +67,25 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	ncount := len(config.Nodes)
 	pipe := &GraphPipe{
+		verbose:  config.Verbose,
 		nodes:    make([]Node, ncount),
 		source:   make([]bool, ncount),
 		children: make([][]int, ncount),
 	}
 
 	// services map
-	servicesMap := make(map[string]int)
-	services := make([]interface{}, len(config.Services))
+	servicesMap := make(map[string]interface{})
+	// create node and inject services
 	newNode := func(nodeConfig NodeConfig) (interface{}, error) {
 		if config.Verbose {
 			log.Printf("Creating: %+v\n", nodeConfig)
 		}
 		var injects []interface{}
 		for _, serviceName := range nodeConfig.Inject {
-			serviceIndex := servicesMap[serviceName]
-			service := services[serviceIndex]
+			service := servicesMap[serviceName]
 			injects = append(injects, service)
 		}
 		something, err := NewNode(nodeConfig.Type, nodeConfig.Config, injects...)
@@ -96,13 +97,12 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 	}
 
 	// setup Services
-	for i, serviceConfig := range config.Services {
+	for _, serviceConfig := range config.Services {
 		service, err := newNode(serviceConfig)
 		if err != nil {
 			return nil, err
 		}
-		services[i] = service
-		servicesMap[serviceConfig.Name] = i
+		servicesMap[serviceConfig.Name] = service
 	}
 
 	// setup Nodes
@@ -114,6 +114,17 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 			return nil, err
 		}
 		node := nodeV.(Node)
+
+		pipe.nodes[i] = node
+		pipe.source[i] = nodeConfig.Source
+		hasSource = hasSource || nodeConfig.Source
+
+		nodesMap[nodeConfig.Name] = i
+	}
+
+	// setup input for nodes
+	for i, nodeConfig := range config.Nodes {
+		node := pipe.nodes[i]
 		if len(nodeConfig.Input) > 0 {
 			var sources []Node
 			for _, nodeName := range nodeConfig.Input {
@@ -126,17 +137,12 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 				return nil, err
 			}
 		}
-
-		pipe.nodes[i] = node
-		pipe.source[i] = nodeConfig.Source
-		hasSource = hasSource || nodeConfig.Source
-		nodesMap[nodeConfig.Name] = i
 	}
 
 	if !hasSource {
 		return nil, fmt.Errorf("You must specify at least one source node!")
 	}
-	pipe.verbose = config.Verbose
+
 	return pipe, nil
 }
 
