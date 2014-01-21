@@ -15,6 +15,7 @@ type IntDelayer struct {
 	}
 	count  int
 	delay  int
+	closed bool
 	source pipe.IntSource
 }
 
@@ -22,11 +23,16 @@ type IntDelayerConfig struct {
 	Delay int
 }
 
-func (f *IntDelayer) Update(_ int) (updated bool) {
+func (f *IntDelayer) Update(_ int) (updated pipe.UpdateResult) {
 	if f.count == f.delay {
 		if len(f.cache) > 0 {
-			updated, f.tid, f.value = true, f.cache[0].tid, f.cache[0].value
-			f.cache = f.cache[1:len(f.cache)]
+			updated, f.tid, f.value = pipe.Updated, f.cache[0].tid, f.cache[0].value
+			f.cache = f.cache[1:]
+			if f.source.Closed() {
+				updated = pipe.HasMore
+			}
+		} else {
+			f.closed = true
 		}
 	} else {
 		f.count++
@@ -48,7 +54,7 @@ func (f *IntDelayer) Closed() bool {
 	if f.cache == nil {
 		return f.source.Closed()
 	} else {
-		return len(f.cache) == 0
+		return f.closed
 	}
 }
 

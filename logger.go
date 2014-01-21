@@ -27,9 +27,9 @@ type LoggerConfig struct {
 	Output string
 }
 
-func (l *Logger) Update(mytid int) bool {
+func (l *Logger) Update(mytid int) (result UpdateResult) {
 	if l.Closed() {
-		return false
+		return
 	}
 	fmt.Fprintf(l.output, "%v [%d]%s:", time.Now().Format("0102 15:04:05"), mytid, l.name)
 	for _, source := range l.sources {
@@ -42,7 +42,7 @@ func (l *Logger) Update(mytid int) bool {
 	}
 	fmt.Fprintln(l.output)
 	l.output.Sync()
-	return false
+	return
 }
 
 func (l *Logger) Closed() bool {

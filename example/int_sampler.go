@@ -2,7 +2,6 @@ package graphpipe_example
 
 import (
 	"fmt"
-	"log"
 
 	pipe "github.com/thinxer/graphpipe"
 )
@@ -21,10 +20,10 @@ type IntSamplerConfig struct {
 	Interval int
 }
 
-func (f *IntSampler) Update(tid int) (updated bool) {
+func (f *IntSampler) Update(tid int) (updated pipe.UpdateResult) {
 	if f.count == 0 {
 		f.tid, f.sample = f.source.Value()
-		updated = true
+		updated = pipe.Updated
 	}
 	f.count = (f.count + 1) % f.interval
 	return
@@ -39,7 +38,6 @@ func (f *IntSampler) Closed() bool {
 }
 
 func (i *IntSampler) SetInput(source pipe.IntSource) {
-	log.Println("setting input")
 	i.source = source
 }
 

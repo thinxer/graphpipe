@@ -106,4 +106,6 @@ func ExampleIntDiffer() {
 	// Diff[3]: 2[3]
 	// Diff[4]: 3[4]
 	// Diff[5]: 5[5]
+	// Diff[6]: 3[6]
+	// Diff[6]: 0[6]
 }

@@ -1,9 +1,17 @@
 package graphpipe
 
+type UpdateResult int
+
+const (
+	Skip UpdateResult = iota
+	Updated
+	HasMore
+)
+
 // An updatable node in the pipeline
 type Node interface {
 	// Return true to activate nodes depending on this one.
-	Update(tid int) (updated bool)
+	Update(tid int) (updated UpdateResult)
 	// Return true if the node won't output anything anymore
 	// This method is usually also required by the Source interfaces.
 	Closed() bool

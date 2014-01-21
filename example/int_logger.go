@@ -7,8 +7,6 @@ import (
 )
 
 type IntLogger struct {
-	tid    int
-	value  int
 	name   string
 	silent bool
 	source pipe.IntSource
@@ -19,16 +17,12 @@ type IntLoggerConfig struct {
 	Silent bool
 }
 
-func (f *IntLogger) Update(tid int) bool {
+func (f *IntLogger) Update(tid int) pipe.UpdateResult {
 	f.tid, f.value = f.source.Value()
 	if !f.silent {
 		fmt.Printf("%s[%d]: %d[%d]\n", f.name, tid, f.value, f.tid)
 	}
-	return true
-}
-
-func (f *IntLogger) Value() (int, int) {
-	return f.tid, f.value
+	return pipe.Updated
 }
 
 func (f *IntLogger) Closed() bool {

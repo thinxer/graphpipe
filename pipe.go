@@ -1,56 +1,6 @@
 package graphpipe
 
-import (
-	"fmt"
-	"io/ioutil"
-	"log"
-
-	"launchpad.net/goyaml"
-)
-
-type NodeConfig struct {
-	Name   string
-	Type   string
-	Source bool
-	Inject []string
-	Input  []string
-	Config interface{}
-}
-
-type Config struct {
-	Verbose         bool
-	Services, Nodes []NodeConfig
-}
-
-func readConfig(bytes []byte) (config *Config, err error) {
-	config = &Config{}
-	// first pass to get node types
-	err = goyaml.Unmarshal(bytes, config)
-	if err != nil {
-		return
-	}
-	// second pass to get node configs
-	for _, nodes := range [][]NodeConfig{config.Services, config.Nodes} {
-		for i := range nodes {
-			// Is there a way not to remarshal the config?
-			if nodes[i].Config != nil {
-				remarshal, err := goyaml.Marshal(nodes[i].Config)
-				if err != nil {
-					return nil, err
-				}
-
-				nodes[i].Config = NewConfig(nodes[i].Type)
-				err = goyaml.Unmarshal(remarshal, nodes[i].Config)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				nodes[i].Config = NewConfig(nodes[i].Type)
-			}
-		}
-	}
-	return
-}
+import "log"
 
 type GraphPipe struct {
 	tid      int
@@ -61,99 +11,6 @@ type GraphPipe struct {
 	verbose bool
 }
 
-// Construct a graphpipe from a YAML config.
-func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
-	config, err := readConfig(yaml)
-	if err != nil {
-		return nil, err
-	}
-
-	ncount := len(config.Nodes)
-	pipe := &GraphPipe{
-		verbose:  config.Verbose,
-		nodes:    make([]Node, ncount),
-		source:   make([]bool, ncount),
-		children: make([][]int, ncount),
-	}
-
-	// services map
-	servicesMap := make(map[string]interface{})
-	// create node and inject services
-	newNode := func(nodeConfig NodeConfig) (interface{}, error) {
-		if config.Verbose {
-			log.Printf("Creating: %+v\n", nodeConfig)
-		}
-		var injects []interface{}
-		for _, serviceName := range nodeConfig.Inject {
-			service := servicesMap[serviceName]
-			injects = append(injects, service)
-		}
-		something, err := NewNode(nodeConfig.Type, nodeConfig.Config, injects...)
-
-		if something == nil && err == nil {
-			err = fmt.Errorf("Creation of %s failed", nodeConfig.Name)
-		}
-		return something, err
-	}
-
-	// setup Services
-	for _, serviceConfig := range config.Services {
-		service, err := newNode(serviceConfig)
-		if err != nil {
-			return nil, err
-		}
-		servicesMap[serviceConfig.Name] = service
-	}
-
-	// setup Nodes
-	nodesMap := make(map[string]int)
-	hasSource := false
-	for i, nodeConfig := range config.Nodes {
-		nodeV, err := newNode(nodeConfig)
-		if err != nil {
-			return nil, err
-		}
-		node := nodeV.(Node)
-
-		pipe.nodes[i] = node
-		pipe.source[i] = nodeConfig.Source
-		hasSource = hasSource || nodeConfig.Source
-
-		nodesMap[nodeConfig.Name] = i
-	}
-
-	// setup input for nodes
-	for i, nodeConfig := range config.Nodes {
-		node := pipe.nodes[i]
-		if len(nodeConfig.Input) > 0 {
-			var sources []Node
-			for _, nodeName := range nodeConfig.Input {
-				depIndex := nodesMap[nodeName]
-				dep := pipe.nodes[depIndex]
-				sources = append(sources, dep)
-				pipe.children[depIndex] = append(pipe.children[depIndex], i)
-			}
-			if err := SetInput(node, sources...); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if !hasSource {
-		return nil, fmt.Errorf("You must specify at least one source node!")
-	}
-
-	return pipe, nil
-}
-
-func GraphPipeFromYAMLFile(filename string) (*GraphPipe, error) {
-	bytes, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	return GraphPipeFromYAML(bytes)
-}
-
 // Return the id of next tick.
 func (p *GraphPipe) TickId() int {
 	return p.tid
@@ -161,38 +18,70 @@ func (p *GraphPipe) TickId() int {
 
 // Run once and increase tid by one.
 func (p *GraphPipe) RunOnce() bool {
-	closed := 0
 	if p.verbose {
 		log.Printf("GraphPipe[%d] started.", p.tid)
 	}
+
+	seeds := make([]bool, len(p.nodes))
+	copy(seeds, p.source)
+
+	queue := []int{}
 	activated := make([]bool, len(p.nodes))
-	for i, node := range p.nodes {
-		if activated[i] || (p.source[i] && !p.nodes[i].Closed()) {
-			updated := node.Update(p.tid)
-			if updated {
-				for _, j := range p.children[i] {
-					activated[j] = true
-				}
-			}
-			if node.Closed() && p.verbose {
-				log.Printf("GraphPipe[%d] Node[%d] Closed", p.tid, i)
-			}
-		} else if p.nodes[i].Closed() {
-			for _, j := range p.children[i] {
-				if !p.nodes[j].Closed() {
-					activated[j] = true
-				}
+	enqueue := func(i int) {
+		if activated[i] {
+			return
+		}
+		queue = append(queue, i)
+		activated[i] = true
+	}
+
+	closed := true
+	for {
+		for i, s := range seeds {
+			if s {
+				enqueue(i)
+				seeds[i] = false
 			}
 		}
-		if node.Closed() {
-			closed++
+		if len(queue) == 0 {
+			break
+		}
+		for len(queue) > 0 {
+			i := queue[0]
+			queue = queue[1:]
+			activated[i] = false
+			node := p.nodes[i]
+			if node.Closed() {
+				continue
+			}
+
+			updated := node.Update(p.tid)
+			if updated != Skip || (p.source[i] && node.Closed()) {
+				for _, j := range p.children[i] {
+					if !activated[j] {
+						enqueue(j)
+					}
+				}
+				if updated == HasMore {
+					seeds[i] = true
+				}
+			}
+
+			if !node.Closed() {
+				closed = false
+			}
+
+			if p.verbose && node.Closed() {
+				log.Printf("GraphPipe[%d] Node[%d] Closed", p.tid, i)
+			}
 		}
 	}
 	if p.verbose {
 		log.Printf("GraphPipe[%d] finished.", p.tid)
 	}
+
 	p.tid++
-	return closed < len(p.nodes)
+	return !closed
 }
 
 // Run and empty the pipe.

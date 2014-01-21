@@ -1,7 +1,7 @@
 package graphpipe_example
 
 import (
-	"github.com/thinxer/graphpipe"
+	p "github.com/thinxer/graphpipe"
 )
 
 // A sample data source
@@ -18,17 +18,17 @@ type FibonacciConfig struct {
 	Limit        int
 }
 
-func (f *Fibonacci) Update(tid int) bool {
+func (f *Fibonacci) Update(tid int) p.UpdateResult {
 	if f.count < f.limit {
 		f.a, f.b = f.b, f.a+f.b
 		f.tid = tid
 		f.count++
-		return true
+		return p.Updated
 	} else if f.count == f.limit {
 		f.count = -1
-		return false
+		return p.Skip
 	}
-	return false
+	return p.Skip
 }
 
 func (f *Fibonacci) Closed() bool {
@@ -44,5 +44,5 @@ func newFibonacci(config *FibonacciConfig) (*Fibonacci, error) {
 }
 
 func init() {
-	graphpipe.Regsiter("Fibonacci", newFibonacci)
+	p.Regsiter("Fibonacci", newFibonacci)
 }
