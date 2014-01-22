@@ -18,9 +18,9 @@ type IntLoggerConfig struct {
 }
 
 func (f *IntLogger) Update(tid int) pipe.UpdateResult {
-	f.tid, f.value = f.source.Value()
+	stid, value := f.source.Value()
 	if !f.silent {
-		fmt.Printf("%s[%d]: %d[%d]\n", f.name, tid, f.value, f.tid)
+		fmt.Printf("%s[%d]: %d[%d]\n", f.name, tid, value, stid)
 	}
 	return pipe.Updated
 }

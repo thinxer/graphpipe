@@ -11,7 +11,6 @@ import (
 type NodeConfig struct {
 	Name   string
 	Type   string
-	Source bool
 	Inject []string
 	Input  []string
 	Config interface{}
@@ -63,7 +62,6 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 	pipe := &GraphPipe{
 		verbose:  config.Verbose,
 		nodes:    make([]Node, ncount),
-		source:   make([]bool, ncount),
 		children: make([][]int, ncount),
 	}
 
@@ -107,10 +105,15 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 		node := nodeV.(Node)
 
 		pipe.nodes[i] = node
-		pipe.source[i] = nodeConfig.Source
-		hasSource = hasSource || nodeConfig.Source
+		_, isSource := node.(SourceNode)
+		hasSource = hasSource || isSource
 
 		nodesMap[nodeConfig.Name] = i
+		servicesMap[nodeConfig.Name] = node
+	}
+
+	if !hasSource {
+		return nil, fmt.Errorf("You must have at least one source node!")
 	}
 
 	// setup input for nodes
@@ -128,10 +131,6 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 				return nil, err
 			}
 		}
-	}
-
-	if !hasSource {
-		return nil, fmt.Errorf("You must specify at least one source node!")
 	}
 
 	if pipe.verbose {

@@ -1,12 +1,19 @@
 package graphpipe
 
-import "log"
+import (
+	"sync"
+
+	"log"
+)
 
 type GraphPipe struct {
 	tid      int
 	nodes    []Node
-	source   []bool
 	children [][]int
+
+	control chan int
+	started bool
+	wg      sync.WaitGroup
 
 	verbose bool
 }
@@ -16,59 +23,97 @@ func (p *GraphPipe) TickId() int {
 	return p.tid
 }
 
-// Run once and increase tid by one.
+func (p *GraphPipe) startSources() {
+	p.control = make(chan int, 128)
+	for id, node := range p.nodes {
+		if source, ok := node.(SourceNode); ok {
+			if p.verbose {
+				log.Printf("Starting source %d", id)
+			}
+			p.wg.Add(1)
+			ch := make(chan bool, 128)
+			// feed
+			go source.Start(ch)
+			// trans feed
+			go func(id int) {
+				for _ = range ch {
+					p.control <- id
+				}
+				p.control <- id
+				p.wg.Done()
+			}(id)
+		}
+	}
+	go func() {
+		p.wg.Wait()
+		close(p.control)
+	}()
+}
+
+// RunOnce will select an active source and start the pipe.
+// tid may be increased one or more,
+// depending on whether there will be HasMore updates.
 func (p *GraphPipe) RunOnce() bool {
-	if p.verbose {
-		log.Printf("GraphPipe[%d] started.", p.tid)
+	if !p.started {
+		p.startSources()
+		p.started = true
 	}
 
-	seeds := make([]bool, len(p.nodes))
-	copy(seeds, p.source)
-
-	queue := []int{}
-	activated := make([]bool, len(p.nodes))
+	queue := make([]int, 0, len(p.nodes))
+	queued := make([]bool, len(p.nodes))
 	enqueue := func(i int) {
-		if activated[i] {
+		if queued[i] {
 			return
 		}
 		queue = append(queue, i)
-		activated[i] = true
+		queued[i] = true
+	}
+	dequeue := func() int {
+		i := queue[0]
+		queue = queue[1:]
+		queued[i] = false
+		return i
 	}
 
-	closed := true
-	for {
+	seeds := make([]bool, len(p.nodes))
+	activatedSource, ok := <-p.control
+	if !ok {
+		if p.verbose {
+			log.Printf("GraphPipe[%d] all sources closed.", p.tid)
+		}
+		return false
+	}
+	seeds[activatedSource] = true
+
+	more := true
+	for more {
+		more = false
+		p.tid++
+		if p.verbose {
+			log.Printf("GraphPipe[%d] started.", p.tid)
+		}
+
 		for i, s := range seeds {
 			if s {
 				enqueue(i)
 				seeds[i] = false
 			}
 		}
-		if len(queue) == 0 {
-			break
-		}
 		for len(queue) > 0 {
-			i := queue[0]
-			queue = queue[1:]
-			activated[i] = false
+			i := dequeue()
 			node := p.nodes[i]
 			if node.Closed() {
 				continue
 			}
-
 			updated := node.Update(p.tid)
-			if updated != Skip || (p.source[i] && node.Closed()) {
+			if updated != Skip || node.Closed() {
 				for _, j := range p.children[i] {
-					if !activated[j] {
-						enqueue(j)
-					}
+					enqueue(j)
 				}
 				if updated == HasMore {
 					seeds[i] = true
+					more = true
 				}
-			}
-
-			if !node.Closed() {
-				closed = false
 			}
 
 			if p.verbose && node.Closed() {
@@ -79,9 +124,7 @@ func (p *GraphPipe) RunOnce() bool {
 	if p.verbose {
 		log.Printf("GraphPipe[%d] finished.", p.tid)
 	}
-
-	p.tid++
-	return !closed
+	return true
 }
 
 // Run and empty the pipe.

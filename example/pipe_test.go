@@ -8,7 +8,7 @@ func ExampleIntSampler() {
 	var yamlData = `
 # This is a sample YAML configuration.
 ---
-  verbose: yes
+  verbose: no
   nodes:
     - name: fib
       type: Fibonacci
@@ -44,15 +44,15 @@ func ExampleIntSampler() {
 	pipe.Run()
 
 	// Output:
-	// AfterSampling[0]: 1[0]
-	// AfterSampling[3]: 3[3]
+	// AfterSampling[1]: 1[1]
+	// AfterSampling[4]: 3[4]
 }
 
 func ExampleIntDiffer() {
 	var yamlData = `
 # This is a sample YAML configuration.
 ---
-  verbose: yes
+  verbose: no
   nodes:
     - name: fib
       type: Fibonacci
@@ -100,12 +100,12 @@ func ExampleIntDiffer() {
 	pipe.Run()
 
 	// Output:
-	// Diff[0]: 1[0]
 	// Diff[1]: 1[1]
 	// Diff[2]: 1[2]
-	// Diff[3]: 2[3]
-	// Diff[4]: 3[4]
-	// Diff[5]: 5[5]
-	// Diff[6]: 3[6]
-	// Diff[6]: 0[6]
+	// Diff[3]: 1[3]
+	// Diff[4]: 2[4]
+	// Diff[5]: 3[5]
+	// Diff[6]: 5[6]
+	// Diff[7]: 3[7]
+	// Diff[8]: 0[8]
 }

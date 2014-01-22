@@ -8,9 +8,12 @@ import (
 
 type Fibonacci struct {
 	a, b  int
-	tid   int
-	count int
 	limit int
+
+	tid     int
+	value   int
+	pending chan int
+	closed  bool
 }
 
 type FibonacciConfig struct {
@@ -18,29 +21,38 @@ type FibonacciConfig struct {
 	Limit        int
 }
 
-func (f *Fibonacci) Update(tid int) p.UpdateResult {
-	if f.count < f.limit {
+func newFibonacci(config *FibonacciConfig) (*Fibonacci, error) {
+	return &Fibonacci{a: config.Seed1, b: config.Seed2, limit: config.Limit, pending: make(chan int, 128)}, nil
+}
+
+func (f *Fibonacci) Start(ch chan bool) {
+	for f.limit > 0 {
+		f.limit--
 		f.a, f.b = f.b, f.a+f.b
-		f.tid = tid
-		f.count++
+		f.pending <- f.a
+		ch <- true
+	}
+	close(ch)
+	close(f.pending)
+}
+
+func (f *Fibonacci) Update(tid int) p.UpdateResult {
+	v, ok := <-f.pending
+	if ok {
+		f.tid, f.value = tid, v
 		return p.Updated
-	} else if f.count == f.limit {
-		f.count = -1
+	} else {
+		f.closed = true
 		return p.Skip
 	}
-	return p.Skip
 }
 
 func (f *Fibonacci) Closed() bool {
-	return f.count < 0
+	return f.closed
 }
 
 func (f *Fibonacci) Value() (int, int) {
-	return f.tid, f.a
-}
-
-func newFibonacci(config *FibonacciConfig) (*Fibonacci, error) {
-	return &Fibonacci{a: config.Seed1, b: config.Seed2, count: 0, limit: config.Limit}, nil
+	return f.tid, f.value
 }
 
 func init() {
