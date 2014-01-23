@@ -28,9 +28,6 @@ type LoggerConfig struct {
 }
 
 func (l *Logger) Update(mytid int) (result UpdateResult) {
-	if l.Closed() {
-		return
-	}
 	fmt.Fprintf(l.output, "%v [%d]%s:", time.Now().Format("0102 15:04:05"), mytid, l.name)
 	for _, source := range l.sources {
 		valueMethod := reflect.ValueOf(source).MethodByName("Value")
@@ -38,6 +35,9 @@ func (l *Logger) Update(mytid int) (result UpdateResult) {
 		fmt.Fprintf(l.output, "\t")
 		for _, r := range results {
 			fmt.Fprintf(l.output, "[%v]", r.Interface())
+		}
+		if source.Closed() {
+			fmt.Print("!")
 		}
 	}
 	fmt.Fprintln(l.output)

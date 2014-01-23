@@ -39,7 +39,6 @@ func (p *GraphPipe) startSources() {
 				for _ = range ch {
 					p.control <- id
 				}
-				p.control <- id
 				p.wg.Done()
 			}(id)
 		}
@@ -102,9 +101,6 @@ func (p *GraphPipe) RunOnce() bool {
 		for len(queue) > 0 {
 			i := dequeue()
 			node := p.nodes[i]
-			if node.Closed() {
-				continue
-			}
 			updated := node.Update(p.tid)
 			if updated != Skip || node.Closed() {
 				for _, j := range p.children[i] {

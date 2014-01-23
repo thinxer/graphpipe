@@ -32,6 +32,7 @@ func (f *Fibonacci) Start(ch chan bool) {
 		f.pending <- f.a
 		ch <- true
 	}
+	ch <- true
 	close(ch)
 	close(f.pending)
 }
