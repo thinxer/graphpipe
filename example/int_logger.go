@@ -17,16 +17,12 @@ type IntLoggerConfig struct {
 	Silent bool
 }
 
-func (f *IntLogger) Update(tid int) pipe.UpdateResult {
+func (f *IntLogger) Update(tid int) pipe.Result {
 	stid, value := f.source.Value()
 	if !f.silent && !f.source.Closed() {
 		fmt.Printf("%s[%d]: %d[%d]\n", f.name, tid, value, stid)
 	}
-	return pipe.Updated
-}
-
-func (f *IntLogger) Closed() bool {
-	return f.source.Closed()
+	return pipe.Skip
 }
 
 func (i *IntLogger) SetInput(source pipe.IntSource) {

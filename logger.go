@@ -27,7 +27,7 @@ type LoggerConfig struct {
 	Output string
 }
 
-func (l *Logger) Update(mytid int) (result UpdateResult) {
+func (l *Logger) Update(mytid int) (result Result) {
 	fmt.Fprintf(l.output, "%v [%d]%s:", time.Now().Format("0102 15:04:05"), mytid, l.name)
 	for _, source := range l.sources {
 		valueMethod := reflect.ValueOf(source).MethodByName("Value")

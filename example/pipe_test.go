@@ -72,22 +72,7 @@ func ExampleIntDiffer() {
       input:
         - fib
         - delayed
-    - name: logger
-      type: IntLogger
-      input:
-        - fib
-      config:
-        name: Fib
-        silent: yes
-    - name: logger2
-      type: IntLogger
-      input:
-        - delayed
-      config:
-        name: Delayed
-        silent: yes
-    - name: logger3
-      type: IntLogger
+    - type: IntLogger
       input:
         - differ
       config:

@@ -1,24 +1,32 @@
 package graphpipe
 
-type UpdateResult int
+type Result int
 
 const (
-	Skip UpdateResult = iota
-	Updated
-	HasMore
-	End
+	Skip   = 0         // Emit nothing
+	Update = 1 << iota // Activate children
+	More   = 1 << iota // Request for next update
 )
+
+func (r Result) String() string {
+	if r == 0 {
+		return "-"
+	}
+	s := ""
+	if r&Update > 0 {
+		s = s + "U"
+	} else if r&More > 0 {
+		s = s + "+"
+	}
+	return s
+}
 
 // Node represents an updatable node in the pipeline.
 type Node interface {
-	// Return true to activate nodes depending on this one.
-	Update(tid int) (updated UpdateResult)
-	// Return true if the node won't output anything anymore
-	// This method is usually also required by the Source interfaces.
-	Closed() bool
+	Update(tid int) Result
 }
 
-// SourceNode can emit values.
+// SourceNode can emit signals to request an update.
 type SourceNode interface {
 	Node
 	// Start will be called on first iteration.

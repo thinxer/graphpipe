@@ -20,10 +20,10 @@ type IntSamplerConfig struct {
 	Interval int
 }
 
-func (f *IntSampler) Update(tid int) (updated pipe.UpdateResult) {
+func (f *IntSampler) Update(tid int) (updated pipe.Result) {
 	if f.count == 0 {
 		f.tid, f.sample = f.source.Value()
-		updated = pipe.Updated
+		updated = pipe.Update
 	}
 	f.count = (f.count + 1) % f.interval
 	return
@@ -33,8 +33,8 @@ func (f *IntSampler) Value() (int, int) {
 	return f.tid, f.sample
 }
 
-func (f *IntSampler) Closed() bool {
-	return f.source.Closed()
+func (i *IntSampler) Closed() bool {
+	return i.source.Closed()
 }
 
 func (i *IntSampler) SetInput(source pipe.IntSource) {

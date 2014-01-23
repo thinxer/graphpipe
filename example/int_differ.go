@@ -12,19 +12,19 @@ type IntDiffer struct {
 	b pipe.IntSource
 }
 
-func (f *IntDiffer) Update(tid int) pipe.UpdateResult {
+func (f *IntDiffer) Update(tid int) pipe.Result {
 	_, val1 := f.a.Value()
 	_, val2 := f.b.Value()
 	f.tid, f.value = tid, val1-val2
-	return pipe.Updated
+	return pipe.Update
 }
 
 func (f *IntDiffer) Value() (int, int) {
 	return f.tid, f.value
 }
 
-func (f *IntDiffer) Closed() bool {
-	return f.a.Closed() && f.b.Closed()
+func (i *IntDiffer) Closed() bool {
+	return i.a.Closed() && i.b.Closed()
 }
 
 func (i *IntDiffer) SetInput(a, b pipe.IntSource) {

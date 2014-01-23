@@ -7,13 +7,9 @@ import (
 // A sample data source
 
 type Fibonacci struct {
+	tid   int
 	a, b  int
 	limit int
-
-	tid     int
-	value   int
-	pending chan int
-	closed  bool
 }
 
 type FibonacciConfig struct {
@@ -22,38 +18,31 @@ type FibonacciConfig struct {
 }
 
 func newFibonacci(config *FibonacciConfig) (*Fibonacci, error) {
-	return &Fibonacci{a: config.Seed1, b: config.Seed2, limit: config.Limit, pending: make(chan int, 128)}, nil
+	return &Fibonacci{a: config.Seed1, b: config.Seed2, limit: config.Limit}, nil
 }
 
 func (f *Fibonacci) Start(ch chan bool) {
-	for f.limit > 0 {
-		f.limit--
-		f.a, f.b = f.b, f.a+f.b
-		f.pending <- f.a
-		ch <- true
-	}
 	ch <- true
 	close(ch)
-	close(f.pending)
 }
 
-func (f *Fibonacci) Update(tid int) p.UpdateResult {
-	v, ok := <-f.pending
-	if ok {
-		f.tid, f.value = tid, v
-		return p.Updated
+func (f *Fibonacci) Update(tid int) p.Result {
+	if f.limit > 0 {
+		f.a, f.b, f.tid = f.b, f.a+f.b, tid
+		f.limit--
+		return p.Update | p.More
 	} else {
-		f.closed = true
-		return p.Skip
+		f.limit--
+		return p.Update
 	}
-}
-
-func (f *Fibonacci) Closed() bool {
-	return f.closed
 }
 
 func (f *Fibonacci) Value() (int, int) {
-	return f.tid, f.value
+	return f.tid, f.a
+}
+
+func (f *Fibonacci) Closed() bool {
+	return f.limit < 0
 }
 
 func init() {

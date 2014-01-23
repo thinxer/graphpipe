@@ -28,17 +28,14 @@ L:
 	close(ch)
 }
 
-func (i *Timer) Update(tid int) UpdateResult {
-	if i.closed {
-		return Skip
-	}
+func (i *Timer) Update(tid int) Result {
 	if i.source.Closed() {
 		i.closed = true
 		i.closing <- true
-		return Skip
+		return Update
 	}
 	i.tid = tid
-	return Updated
+	return Update
 }
 
 func (i *Timer) Value() int {

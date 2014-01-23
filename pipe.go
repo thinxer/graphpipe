@@ -15,6 +15,8 @@ type GraphPipe struct {
 	started bool
 	wg      sync.WaitGroup
 
+	next *uniqueue
+
 	verbose bool
 }
 
@@ -24,6 +26,7 @@ func (p *GraphPipe) TickId() int {
 }
 
 func (p *GraphPipe) startSources() {
+	p.next = newUniqueue(len(p.nodes))
 	p.control = make(chan int, 128)
 	for id, node := range p.nodes {
 		if source, ok := node.(SourceNode); ok {
@@ -53,70 +56,46 @@ func (p *GraphPipe) startSources() {
 // tid may be increased one or more,
 // depending on whether there will be HasMore updates.
 func (p *GraphPipe) RunOnce() bool {
+	// start sources if not already
 	if !p.started {
 		p.startSources()
 		p.started = true
 	}
 
-	queue := make([]int, 0, len(p.nodes))
-	queued := make([]bool, len(p.nodes))
-	enqueue := func(i int) {
-		if queued[i] {
-			return
-		}
-		queue = append(queue, i)
-		queued[i] = true
-	}
-	dequeue := func() int {
-		i := queue[0]
-		queue = queue[1:]
-		queued[i] = false
-		return i
+	p.tid++
+	if p.verbose {
+		log.Printf("GraphPipe[%d] started.", p.tid)
 	}
 
-	seeds := make([]bool, len(p.nodes))
-	activatedSource, ok := <-p.control
-	if !ok {
-		if p.verbose {
-			log.Printf("GraphPipe[%d] all sources closed.", p.tid)
+	// check if anything scheduled from last run.
+	queue := p.next
+	p.next = newUniqueue(len(p.nodes))
+	// if not, check for signals.
+	if queue.Len() == 0 {
+		id, ok := <-p.control
+		if !ok {
+			if p.verbose {
+				log.Printf("GraphPipe[%d] all sources closed.", p.tid)
+			}
+			return false
 		}
-		return false
+		queue.Push(id)
 	}
-	seeds[activatedSource] = true
 
-	more := true
-	for more {
-		more = false
-		p.tid++
-		if p.verbose {
-			log.Printf("GraphPipe[%d] started.", p.tid)
-		}
-
-		for i, s := range seeds {
-			if s {
-				enqueue(i)
-				seeds[i] = false
+	// run the queue
+	for queue.Len() > 0 {
+		i := queue.Pop()
+		uresult := p.nodes[i].Update(p.tid)
+		if uresult&Update > 0 {
+			for _, j := range p.children[i] {
+				queue.Push(j)
 			}
 		}
-		for len(queue) > 0 {
-			i := dequeue()
-			node := p.nodes[i]
-			updated := node.Update(p.tid)
-			if updated != Skip || node.Closed() {
-				for _, j := range p.children[i] {
-					enqueue(j)
-				}
-				if updated == HasMore {
-					seeds[i] = true
-					more = true
-				}
-			}
-
-			if p.verbose && node.Closed() {
-				log.Printf("GraphPipe[%d] Node[%d] Closed", p.tid, i)
-			}
+		if uresult&More > 0 {
+			p.next.Push(i)
 		}
 	}
+
 	if p.verbose {
 		log.Printf("GraphPipe[%d] finished.", p.tid)
 	}
