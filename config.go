@@ -127,6 +127,9 @@ func GraphPipeFromYAML(yaml []byte) (*GraphPipe, error) {
 				sources = append(sources, dep)
 				pipe.children[depIndex] = append(pipe.children[depIndex], i)
 			}
+			if pipe.verbose {
+				log.Println("Setting input for node", nodeConfig.Name)
+			}
 			if err := SetInput(node, sources...); err != nil {
 				return nil, err
 			}
