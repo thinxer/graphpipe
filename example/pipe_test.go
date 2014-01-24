@@ -67,14 +67,14 @@ func ExampleIntDiffer() {
         - fib
       config:
         delay: 2
-    - name: differ
+    - name: diff
       type: IntDiffer
       input:
         - fib
         - delayed
     - type: IntLogger
       input:
-        - differ
+        - diff
       config:
         name: Diff
 `

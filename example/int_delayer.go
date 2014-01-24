@@ -20,17 +20,15 @@ type IntDelayerConfig struct {
 	Delay int
 }
 
-func (f *IntDelayer) Update(tid int) (updated pipe.Result) {
+func (f *IntDelayer) Update(tid int) (result pipe.Result) {
 	if f.delay == 0 {
-		updated = pipe.Update
 		if len(f.cache) > 0 {
 			f.tid, f.value = tid, f.cache[0]
 			f.cache = f.cache[1:]
+			result |= pipe.Update
 			if f.source.Closed() {
-				updated |= pipe.More
+				result |= pipe.More
 			}
-		} else {
-			f.closed = true
 		}
 	} else {
 		f.delay--
@@ -52,7 +50,7 @@ func (f *IntDelayer) Closed() bool {
 	if f.cache == nil {
 		return f.source.Closed()
 	} else {
-		return f.closed
+		return len(f.cache) == 0
 	}
 }
 

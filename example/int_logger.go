@@ -19,7 +19,7 @@ type IntLoggerConfig struct {
 
 func (f *IntLogger) Update(tid int) pipe.Result {
 	stid, value := f.source.Value()
-	if !f.silent && !f.source.Closed() {
+	if !f.silent {
 		fmt.Printf("%s[%d]: %d[%d]\n", f.name, tid, value, stid)
 	}
 	return pipe.Skip
