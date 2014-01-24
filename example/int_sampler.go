@@ -49,5 +49,5 @@ func NewIntSampler(config *IntSamplerConfig) (*IntSampler, error) {
 }
 
 func init() {
-	pipe.Regsiter("IntSampler", NewIntSampler)
+	pipe.Register("IntSampler", NewIntSampler)
 }

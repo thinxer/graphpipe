@@ -68,5 +68,5 @@ func NewIntDelayer(config *IntDelayerConfig) (*IntDelayer, error) {
 }
 
 func init() {
-	pipe.Regsiter("IntDelayer", NewIntDelayer)
+	pipe.Register("IntDelayer", NewIntDelayer)
 }

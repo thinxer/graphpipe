@@ -31,7 +31,7 @@ type SourceNode interface {
 	Node
 	// Start will be called on first iteration.
 	// When the source is ready to emit a value, send a bool to ch.
-	Start(ch chan bool)
+	Start(ch chan<- bool)
 }
 
 // IntSouce emits int.

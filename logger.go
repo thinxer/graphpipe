@@ -90,5 +90,5 @@ func newLogger(config *LoggerConfig, sources ...AnySource) (*Logger, error) {
 }
 
 func init() {
-	Regsiter("Logger", newLogger)
+	Register("Logger", newLogger)
 }

@@ -36,5 +36,5 @@ func NewIntDiffer(config *struct{}) (*IntDiffer, error) {
 }
 
 func init() {
-	pipe.Regsiter("IntDiffer", NewIntDiffer)
+	pipe.Register("IntDiffer", NewIntDiffer)
 }

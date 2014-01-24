@@ -46,5 +46,5 @@ func (f *Fibonacci) Closed() bool {
 }
 
 func init() {
-	p.Regsiter("Fibonacci", newFibonacci)
+	p.Register("Fibonacci", newFibonacci)
 }

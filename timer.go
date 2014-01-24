@@ -51,5 +51,5 @@ func newTimer(config *TimerConfig, source AnySource) (*Timer, error) {
 }
 
 func init() {
-	Regsiter("Timer", newTimer)
+	Register("Timer", newTimer)
 }

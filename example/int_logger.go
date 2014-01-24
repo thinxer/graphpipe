@@ -34,5 +34,5 @@ func NewIntLogger(config *IntLoggerConfig) (*IntLogger, error) {
 }
 
 func init() {
-	pipe.Regsiter("IntLogger", NewIntLogger)
+	pipe.Register("IntLogger", NewIntLogger)
 }

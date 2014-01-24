@@ -16,7 +16,7 @@ var registry = make(map[string]interface{})
 // Please do not export the newNode function.
 // This function will examine the newNode func for necessary methods,
 // and get the config type from the first argument.
-func Regsiter(name string, newfunc interface{}) {
+func Register(name string, newfunc interface{}) {
 	t := reflect.TypeOf(newfunc)
 	if t.Kind() != reflect.Func {
 		panic(name + "'s newfunc is not a func")
